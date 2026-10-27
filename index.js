@@ -1,3 +1,4 @@
+
 const {
   Client,
   GatewayIntentBits,
@@ -63,7 +64,6 @@ function getRemainingTime() {
 function getHistory(limit = 12) {
   const currentMonth = getMonthsElapsed();
   const firstMonth = Math.max(0, currentMonth - limit);
-
   const entries = [];
 
   for (let month = firstMonth; month <= currentMonth; month++) {
@@ -76,6 +76,7 @@ function getHistory(limit = 12) {
   return entries;
 }
 
+// Actualiza el mensaje fijo con la fecha actual.
 async function publishDate() {
   try {
     const channel = await client.channels.fetch(CHANNEL_ID);
@@ -108,6 +109,33 @@ async function publishDate() {
     }
   } catch (error) {
     console.error("No se pudo actualizar el calendario:", error);
+  }
+}
+
+// Publica un aviso nuevo cada vez que comienza un mes ficticio.
+async function publishMonthAnnouncement() {
+  try {
+    const channel = await client.channels.fetch(CHANNEL_ID);
+
+    if (!channel || !channel.isTextBased()) {
+      console.error("No se encontró el canal para el aviso mensual.");
+      return;
+    }
+
+    await channel.send({
+      content:
+        `@everyone\n\n` +
+        `🌎 **¡COMIENZA UN NUEVO MES EN EL ROLEPLAY!**\n\n` +
+        `📅 La fecha mundial ahora es: **${fictionalDate()}**\n` +
+        `🕒 Han transcurrido 24 horas reales.\n` +
+        `🤝 Todas las naciones comparten esta fecha.\n\n` +
+        `— **Calendario Global**`,
+      allowedMentions: { parse: ["everyone"] },
+    });
+
+    console.log(`Aviso mensual publicado: ${fictionalDate()}`);
+  } catch (error) {
+    console.error("No se pudo publicar el aviso mensual:", error);
   }
 }
 
@@ -156,6 +184,7 @@ client.once("ready", async () => {
 
   await publishDate();
 
+  // Evita enviar un aviso al iniciar o reiniciar el bot.
   let lastMonth = getMonthsElapsed();
 
   setInterval(async () => {
@@ -163,7 +192,9 @@ client.once("ready", async () => {
 
     if (currentMonth > lastMonth) {
       lastMonth = currentMonth;
+
       await publishDate();
+      await publishMonthAnnouncement();
     }
   }, 60 * 1000);
 });
@@ -222,4 +253,3 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
-
