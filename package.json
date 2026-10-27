@@ -1,0 +1,13 @@
+
+{
+  "name": "calendario-global",
+  "version": "1.0.0",
+  "description": "Calendario del roleplay del servidor ONU",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.19.3"
+  }
+}
