@@ -1,4 +1,3 @@
-
 const {
   Client,
   GatewayIntentBits,
@@ -42,16 +41,29 @@ async function publishDate() {
       return;
     }
 
-    await channel.send(
+    const messages = await channel.messages.fetch({ limit: 100 });
+
+    const previousMessage = messages.find(
+      (message) =>
+        message.author.id === client.user.id &&
+        message.content.includes("CALENDARIO MUNDIAL")
+    );
+
+    const content =
       `🌎 **CALENDARIO MUNDIAL**\n\n` +
       `📅 Fecha del roleplay: **${fictionalDate()}**\n` +
       `🕒 Cada 24 horas reales avanza un mes ficticio.\n` +
-      `🤝 La fecha es compartida por todas las naciones.`
-    );
+      `🤝 La fecha es compartida por todas las naciones.`;
 
-    console.log(`Fecha publicada: ${fictionalDate()}`);
+    if (previousMessage) {
+      await previousMessage.edit(content);
+      console.log(`Fecha actualizada: ${fictionalDate()}`);
+    } else {
+      await channel.send(content);
+      console.log(`Fecha publicada: ${fictionalDate()}`);
+    }
   } catch (error) {
-    console.error("No se pudo publicar la fecha:", error);
+    console.error("No se pudo actualizar el calendario:", error);
   }
 }
 
@@ -65,14 +77,14 @@ client.once("ready", async () => {
         description: "Consultar la fecha actual del roleplay",
       },
     ]);
+
+    console.log("Comando /fecha registrado correctamente.");
   } catch (error) {
     console.error("Error registrando /fecha:", error);
   }
 
-  // Publica la fecha actual al iniciar.
   await publishDate();
 
-  // Comprueba cada minuto si comenzó un nuevo mes ficticio.
   let lastMonth = getMonthsElapsed();
 
   setInterval(async () => {
@@ -97,3 +109,4 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
