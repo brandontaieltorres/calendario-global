@@ -1,6 +1,8 @@
+
 const {
   Client,
   GatewayIntentBits,
+  SlashCommandBuilder,
 } = require("discord.js");
 
 const client = new Client({
@@ -9,7 +11,7 @@ const client = new Client({
 
 const CHANNEL_ID = "1564707245747478659";
 
-// Inicio: 27 de octubre de 2026, 14:16 de Argentina.
+// Inicio: 27 de octubre de 2026, 14:16, hora de Argentina.
 const START_AT = new Date("2026-10-27T14:16:00-03:00");
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -20,9 +22,9 @@ function getMonthsElapsed() {
   );
 }
 
-function fictionalDate() {
+function fictionalDate(monthOffset = getMonthsElapsed()) {
   const date = new Date(Date.UTC(2026, 9, 27));
-  date.setUTCMonth(date.getUTCMonth() + getMonthsElapsed());
+  date.setUTCMonth(date.getUTCMonth() + monthOffset);
 
   return date.toLocaleDateString("es-ES", {
     timeZone: "UTC",
@@ -30,6 +32,33 @@ function fictionalDate() {
     month: "long",
     year: "numeric",
   });
+}
+
+function getNextChange() {
+  return new Date(
+    START_AT.getTime() + (getMonthsElapsed() + 1) * DAY_MS
+  );
+}
+
+function formatArgentinaDate(date) {
+  return date.toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+}
+
+function getRemainingTime() {
+  const remaining = Math.max(
+    0,
+    getNextChange().getTime() - Date.now()
+  );
+
+  const totalMinutes = Math.floor(remaining / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${hours} horas y ${minutes} minutos`;
 }
 
 async function publishDate() {
@@ -67,20 +96,35 @@ async function publishDate() {
   }
 }
 
+const commands = [
+  new SlashCommandBuilder()
+    .setName("fecha")
+    .setDescription("Consultar la fecha actual del roleplay"),
+
+  new SlashCommandBuilder()
+    .setName("proxima-fecha")
+    .setDescription("Consultar cuándo comienza el próximo mes ficticio"),
+
+  new SlashCommandBuilder()
+    .setName("calendario")
+    .setDescription("Consultar las reglas del Calendario Global"),
+
+  new SlashCommandBuilder()
+    .setName("tiempo")
+    .setDescription("Consultar cuánto falta para el próximo mes ficticio"),
+];
+
 client.once("ready", async () => {
   console.log(`Calendario Global conectado: ${client.user.tag}`);
 
   try {
-    await client.application.commands.set([
-      {
-        name: "fecha",
-        description: "Consultar la fecha actual del roleplay",
-      },
-    ]);
+    await client.application.commands.set(
+      commands.map((command) => command.toJSON())
+    );
 
-    console.log("Comando /fecha registrado correctamente.");
+    console.log("Los cuatro comandos se registraron correctamente.");
   } catch (error) {
-    console.error("Error registrando /fecha:", error);
+    console.error("Error registrando los comandos:", error);
   }
 
   await publishDate();
@@ -99,14 +143,43 @@ client.once("ready", async () => {
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== "fecha") return;
 
-  await interaction.reply(
-    `📅 **Calendario Global**\n` +
-    `Fecha del roleplay: **${fictionalDate()}**\n` +
-    `Cada 24 horas reales avanza un mes ficticio.`
-  );
+  switch (interaction.commandName) {
+    case "fecha":
+      await interaction.reply(
+        `📅 **Fecha actual del roleplay:** ${fictionalDate()}`
+      );
+      break;
+
+    case "proxima-fecha":
+      await interaction.reply(
+        `🌎 **Próximo cambio del calendario**\n` +
+        `📅 Nueva fecha ficticia: **${fictionalDate(getMonthsElapsed() + 1)}**\n` +
+        `🕒 Cambio previsto: **${formatArgentinaDate(getNextChange())}**`
+      );
+      break;
+
+    case "calendario":
+      await interaction.reply(
+        `🌎 **CALENDARIO GLOBAL**\n\n` +
+        `📅 Fecha actual: **${fictionalDate()}**\n` +
+        `⏳ Cada 24 horas reales avanza un mes ficticio.\n` +
+        `🤝 Todas las naciones comparten la misma fecha.\n` +
+        `🕒 Zona horaria de referencia: Argentina (UTC−3).\n` +
+        `🔄 El calendario calcula la fecha automáticamente, incluso después de una desconexión.`
+      );
+      break;
+
+    case "tiempo":
+      await interaction.reply(
+        `⏳ **Tiempo hasta el próximo mes ficticio**\n\n` +
+        `🕒 Faltan aproximadamente **${getRemainingTime()}**.\n` +
+        `📅 Próxima fecha: **${fictionalDate(getMonthsElapsed() + 1)}**`
+      );
+      break;
+  }
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
 
