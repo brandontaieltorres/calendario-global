@@ -1,43 +1,30 @@
 
-const { Client, GatewayIntentBits } = require("discord.js");
+const {
+  Client,
+  GatewayIntentBits,
+} = require("discord.js");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
-const TIME_ZONE = "America/Argentina/Buenos_Aires";
-
-// Fecha inicial del calendario ficticio.
-const START_DATE = new Date("2026-10-27T00:00:00-03:00");
-
-function argentinaDate() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
+// Inicio del calendario: 27 de octubre de 2026,
+// a las 14:16, hora de Argentina.
+const START_AT = new Date("2026-10-27T14:16:00-03:00");
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function fictionalDate() {
-  const parts = argentinaDate().split("-").map(Number);
-  const today = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-
-  const start = Date.UTC(
-    START_DATE.getUTCFullYear(),
-    START_DATE.getUTCMonth(),
-    START_DATE.getUTCDate()
-  );
-
-  const elapsedDays = Math.max(
+  const elapsed = Math.max(
     0,
-    Math.floor((today - start) / 86400000)
+    Date.now() - START_AT.getTime()
   );
 
-  const result = new Date(START_DATE);
-  result.setUTCMonth(result.getUTCMonth() + elapsedDays);
+  const monthsElapsed = Math.floor(elapsed / DAY_MS);
 
-  return result.toLocaleDateString("es-ES", {
+  const date = new Date(Date.UTC(2026, 9, 27));
+  date.setUTCMonth(date.getUTCMonth() + monthsElapsed);
+
+  return date.toLocaleDateString("es-ES", {
     timeZone: "UTC",
     day: "numeric",
     month: "long",
@@ -45,21 +32,34 @@ function fictionalDate() {
   });
 }
 
-client.once("ready", () => {
-  console.log(`Calendario Global conectado como ${client.user.tag}`);
-  console.log(`Fecha ficticia actual: ${fictionalDate()}`);
-  console.log("Zona horaria: Argentina (UTC-3)");
+client.once("ready", async () => {
+  console.log(`Calendario Global conectado: ${client.user.tag}`);
+
+  try {
+    await client.application.commands.set([
+      {
+        name: "fecha",
+        description: "Consultar la fecha actual del roleplay",
+      },
+    ]);
+
+    console.log("Comando /fecha registrado correctamente.");
+    console.log(`Fecha ficticia: ${fictionalDate()}`);
+  } catch (error) {
+    console.error("Error al registrar /fecha:", error);
+  }
 });
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== "fecha") return;
 
-  if (interaction.commandName === "fecha") {
-    await interaction.reply({
-      content: `📅 **Calendario Global**\nFecha del roleplay: **${fictionalDate()}**\nZona horaria: Argentina (UTC-3).`,
-      ephemeral: false,
-    });
-  }
+  await interaction.reply({
+    content:
+      `📅 **Calendario Global**\n` +
+      `Fecha del roleplay: **${fictionalDate()}**\n` +
+      `Cada 24 horas reales avanza un mes ficticio.`,
+  });
 });
 
 client.login(process.env.DISCORD_TOKEN);
