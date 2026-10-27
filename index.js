@@ -1,4 +1,3 @@
-
 const {
   Client,
   GatewayIntentBits,
@@ -61,6 +60,22 @@ function getRemainingTime() {
   return `${hours} horas y ${minutes} minutos`;
 }
 
+function getHistory(limit = 12) {
+  const currentMonth = getMonthsElapsed();
+  const firstMonth = Math.max(0, currentMonth - limit);
+
+  const entries = [];
+
+  for (let month = firstMonth; month <= currentMonth; month++) {
+    entries.push(
+      `${month === currentMonth ? "🟢" : "📅"} **${fictionalDate(month)}**` +
+      (month === 0 ? " — Inicio del calendario" : "")
+    );
+  }
+
+  return entries;
+}
+
 async function publishDate() {
   try {
     const channel = await client.channels.fetch(CHANNEL_ID);
@@ -112,6 +127,18 @@ const commands = [
   new SlashCommandBuilder()
     .setName("tiempo")
     .setDescription("Consultar cuánto falta para el próximo mes ficticio"),
+
+  new SlashCommandBuilder()
+    .setName("historial")
+    .setDescription("Consultar las fechas anteriores del calendario")
+    .addIntegerOption((option) =>
+      option
+        .setName("cantidad")
+        .setDescription("Cantidad de meses anteriores que deseas consultar")
+        .setMinValue(1)
+        .setMaxValue(12)
+        .setRequired(false)
+    ),
 ];
 
 client.once("ready", async () => {
@@ -122,7 +149,7 @@ client.once("ready", async () => {
       commands.map((command) => command.toJSON())
     );
 
-    console.log("Los cuatro comandos se registraron correctamente.");
+    console.log("Los cinco comandos se registraron correctamente.");
   } catch (error) {
     console.error("Error registrando los comandos:", error);
   }
@@ -177,9 +204,22 @@ client.on("interactionCreate", async (interaction) => {
         `📅 Próxima fecha: **${fictionalDate(getMonthsElapsed() + 1)}**`
       );
       break;
+
+    case "historial": {
+      const limit = interaction.options.getInteger("cantidad") ?? 12;
+      const history = getHistory(limit);
+
+      await interaction.reply(
+        `📚 **HISTORIAL DEL CALENDARIO GLOBAL**\n\n` +
+        `🌎 Inicio: **27 de octubre de 2026**\n` +
+        `📅 Fecha actual: **${fictionalDate()}**\n\n` +
+        history.join("\n") +
+        `\n\n🕒 Cada 24 horas reales avanza un mes ficticio.`
+      );
+      break;
+    }
   }
 });
 
 client.login(process.env.DISCORD_TOKEN);
-
 
